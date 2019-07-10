@@ -1,0 +1,75 @@
+---
+title: "Data 620 - Final Project Proposal"
+author: "Juliann McEachern"
+date: "July 10, 2019"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Proposal: Police Misconduct Network Analysis
+
+**Your proposal should describe at a high level what you’re seeking to accomplish, and your motivation for performing this analysis.** 
+
+Motivation: Examine the affect Civilian Office of Police Accountability (COPA) has had on policy accounability and transparency since implimentation in 2017. 
+
+*Insert brief history and explination of COPA. Cite sources in text & reference section.*
+
+## Project Goals
+
+**A guiding question or hypothesis to test is one good way to start.  If you are building a model or models, explain how you evaluate the “goodness” of the chosen model and parameters.**
+
+Possible considerations: 
+
+1.  Time series network data to see how COPA implimentation in 2017 has affected the quantity of civilian complaints and the outcome of resolved cases. 
+2.  Network analysis of race, incident type, incident locations, officer involvement, officer age, etc. 
+
+*Insert other ideas here. Goals will be refined through group discussion in the slack channel.*
+
+## Data Source
+
+**Describe your data sources.**
+
+OpenSource data from the City of Chicago. Data has been obtained using the Socrata API in Python and stored as a CSV file within our repository for reproducibility purposes. 
+
+*Insert additional details of the information available for analysis.*
+
+## Work Plan 
+
+**Plan for doing the work.  If you are working in a group, please describe the roles and responsibilities of each group member.**
+
+1.  Proposal: Juliann
+2.  Data Aquisition: Juliann
+3.  Data Preparation: Juliann
+4.  Data Exploration: Juliann
+5.  Network Design: Juliann
+6.  Network Analysis: Juliann
+7.  Conclusion: Juliann
+8.  Formatting and Review: Juliann
+9.  Final Presentation Video: Juliann
+10.  Final Presentation: Juliann 
+
+
+*Team members: Please add where you plan on contributing and include details on what your contribution will include and when it will be done by.*
+
+## Concerns
+
+**List of up front concerns:**
+
+1.  Transitioning from iPython to R to build and analyze network data. 
+2.  Managing workflow between team members in a timely manner.
+3.  Receiving reasonable participation from all members and quality contributions to project.
+4.  Collaborating on work simulatneously in GitHub. 
+
+## References
+
+References should be properly cited in final project (APA). This will do as a start for now. 
+
+1.  About COPA: https://www.chicagocopa.org/about-copa/mission-history/
+2.  Data Source: https://data.cityofchicago.org/
+3.  R Network Reference: https://kateto.net/network-visualization
