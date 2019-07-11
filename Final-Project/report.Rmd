@@ -1,0 +1,38 @@
+---
+title: "report"
+author: "Juliann McEachern"
+date: "July 10, 2019"
+output: html_document
+---
+
+
+## Final Project 
+
+### Dependencies
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+### Data Aquisition
+
+```{r}
+wrn <- as.data.frame(read.csv("data/nyc_wrn_db.csv"))
+fam_viol <- read.csv("data/nyc_fam_viol.csv")
+```
+
+### Data Tidying
+
+```{r}
+wrn_dv <- wrn %>% filter(domestic_violence=="Y") %>% select(-domestic_violence, -address2, -bbl, -bin, -is_registered_with_the_attorney_general_s_office, -city, -fax, -foundation, -none_of_the_above, -nourl, -phone, -url, -borough, -census_tract, -published, -outsideloc, -outsidelocdesc) %>% droplevels()
+
+wrn_dv %>% head()
+```
+
+
+
+
+
+
