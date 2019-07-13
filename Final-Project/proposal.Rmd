@@ -42,10 +42,10 @@ Using sentiment analysis, we will attempt to classify reviews as negative, neutr
 2.  Data Aquisition: Juliann
 3.  Data Preparation: Juliann
 4.  Data Exploration: Juliann
-5.  Network Design: Juliann
-6.  Network Analysis: Juliann
-7.  Sentiment Analysis: Juliann
-8.  Conclusion: Juliann
+5.  Network Design: Juliann/Katie
+6.  Network Analysis: Juliann/Katie
+7.  Sentiment Analysis: Anthony/Mia
+8.  Conclusion: Juliann/Katie/Anthony/Mia
 9.  Formatting and Review: Juliann
 10.  Final Presentation Video: Juliann
 11.  Final Presentation: Juliann 
