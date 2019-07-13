@@ -129,7 +129,7 @@ Final thoughts.
 Inspiration for this project was derrived from the following sources: 
 
 1.  Data Source: https://www.kaggle.com/c/yelp-recsys-2013/data
-2.  Related Project: http://rpubs.com/jemceach/D212-Final-Project
+2.  Related Project: http://rpubs.com/jemceach/D612-Final-Project
 3.  R Network Reference: https://kateto.net/network-visualization
 
 

@@ -16,7 +16,7 @@ output:
 
 ### Data Source:
 
-The data will be obtained from a subset of Kaggle's 2013 [Yelp Review Challenge](https://www.kaggle.com/c/yelp-recsys-2013/data) to include only businesses within the food and beverage industries that operate in the Phoenix, Arizona metropolitan area. Inspiration for this project comes from a concurrent assignment for [Data 612](http://rpubs.com/jemceach/D212-Final-Project), in which the data is being used to build a recommender system. 
+The data will be obtained from a subset of Kaggle's 2013 [Yelp Review Challenge](https://www.kaggle.com/c/yelp-recsys-2013/data) to include only businesses within the food and beverage industries that operate in the Phoenix, Arizona metropolitan area. Inspiration for this project comes from a concurrent assignment for [Data 612](http://rpubs.com/jemceach/612-Final-Project), in which the data is being used to build a recommender system. 
 
 
 # Project Goals
@@ -66,5 +66,5 @@ Up-front concerns for project completion:
 Inspiration for this project has been derrived from the following sources: 
 
 1.  Data Source: https://www.kaggle.com/c/yelp-recsys-2013/data
-2.  Related Project: http://rpubs.com/jemceach/D212-Final-Project
+2.  Related Project: http://rpubs.com/jemceach/D612-Final-Project
 3.  R Network Reference: https://kateto.net/network-visualization
