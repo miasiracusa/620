@@ -53,96 +53,106 @@ Data was acquired from Kaggle as a JSON file for a project conducted in [Data 61
 
 ```{r aquisition}
 # load data
-yelp_review <- read.csv("data/yelp_review.csv"); yelp_review <- select(yelp_review,-X)
-yelp_user <- read.csv("data/yelp_user.csv"); yelp_user <- select(yelp_user,-X)
-yelp_business <- read.csv("data/yelp_business.csv"); yelp_business <- select(yelp_business,-X)
+yelp<- read.csv("data/yelp.csv"); yelp <- select(yelp,-X, -business_id, -user_id) %>% rename(businessID = itemID)
 ```
 
-## Data Tidying
+## Data Tidying {.tabset .tabset-fade .tabset-pills}
 
-Explain steps. 
+Data was transformed and separated into two dataframes for network building and text processing. 
 
-```{r}
-# tidy review data
-yelp_review$business_id<-as.character(yelp_review$business_id)
-yelp_review$user_id<-as.character(yelp_review$user_id)
-yelp_review$review_id<-as.character(yelp_review$review_id)
-reviews <- yelp_review %>% group_by(business_id) %>% mutate(avg_business_stars = round(mean(stars))) 
-
-# tidy user data
-yelp_user$user_id<-as.character(yelp_user$user_id)
-user <- yelp_user %>% select(user_id, name) %>% 
-  inner_join(yelp_review, by="user_id") %>% 
-  select(-date, -review_id)%>%
-  group_by(user_id,name) %>% 
-  rename(user_name = name) %>%
-  summarize(review_count = n(), 
-            avg_votes_funny = round(mean(votes.funny, na.rm = TRUE)), 
-            avg_votes_useful = round(mean(votes.useful, na.rm = TRUE)), 
-            avg_votes_cool = round(mean(votes.cool, na.rm = TRUE)), 
-            avg_user_stars = round(mean(stars),1)) %>%
+```{r transformations}
+# transform data for network analysis 
+yelp_network <- yelp %>% 
+  select(userID, businessID, name, stars) %>% 
+  group_by(businessID) %>% 
+  add_count() %>%
+  rename(size = n)%>%
+  ungroup() %>%
+  group_by(userID) %>% 
+  add_count() %>%
+  rename(weight = n)%>%
   ungroup()
 
-# tidy business data
-yelp_business$business_id<-as.character(yelp_business$business_id)
-business <- yelp_business %>% select(business_id, name, categories, city, state, latitude, longitude) %>% rename(business_name = name)
-
-# create relationships from review data between business_id and user_id
-relationship <- reviews %>% 
-  inner_join(business, by='business_id')%>%
-  inner_join(user, by='user_id') %>%
-  select(business_id, user_id, business_name, user_name, review_count, avg_business_stars) %>% 
-  group_by(business_id) %>% 
-  add_count()%>%
-  ungroup()
+# transform data for text processing 
+yelp_reviews <- yelp %>% 
+  transform(reviewID=match(review_id, unique(review_id))) %>% 
+  select(-review_id, -longitude, -latitude) %>%
+  select(userID, businessID, reviewID, name, city, state, votes.funny, votes.useful, votes.cool, 
+         stars, text, date)
 ```
 
-Preview relationship data to build network from. 
+### Network Data 
+```{r view-network-data, echo=F}
+yelp_network
+```
 
-```{r}
-relationship
+
+### Text Data 
+
+```{r view-text-data, echo=F}
+yelp_reviews
 ```
 
 
 # Network Analysis
 
-Network practice. To be updated.  
-
-```{r network-prep, cache=T}
-net <- graph_from_data_frame(d=relationship, directed=T) 
-net <- simplify(net, remove.multiple = F, remove.loops = T) 
-plot(net,vertex.label=NA)
-```
+We created a 2-mode network from our connections between business entities and yelp users. 
 
 ```{r}
-#prepare data
-business <- unique(relationship$business_name)
-business <- as.character(relationship$business_name)
-user <- as.character(relationship$user_name)
+# input data 
+business_nodes <- unique(yelp_network$businessID)
+user_nodes <- unique(yelp_network$userID)
+edgeList <- yelp_network %>% select(businessID, userID, weight)
 
-#create dataframe
-df <- cbind(business, user)
+# CREATE GRAPH
+g <- graph.empty()
 
-#create network data
-g<- graph.data.frame(df, directed=FALSE)
-bipartite.mapping(g)
-V(g)$type <- bipartite_mapping(g)$type 
-
-#plot network
-plot(g)
-plot(g, layout=layout.bipartite)
- 
-#Make businesses pink squares and make users blue circles 
-V(g)$color <- ifelse(V(g)$type, "lightblue", "salmon")
+# ADD VERTICES TO GRAPH
+## Business Nodes (red)
+g <- add.vertices(g, 
+                  nv=length(business_nodes), # number of vertices to add 
+                  color = 'red',
+                  attr=list(name=paste0('B',business_nodes),type=rep(TRUE,length(business_nodes))))
+## User Nodes (white)
+g <- add.vertices(g,
+                  nv=length(user_nodes),
+                  color = 'white',
+                  attr=list(name=paste0('U',user_nodes), type=rep(FALSE,length(user_nodes))))
+## Set Node Shape
 V(g)$shape <- ifelse(V(g)$type, "circle", "square")
-E(g)$color <- "lightgray"
-plot(g, vertex.label.cex = 0.8, vertex.label.color = "black")
 
-#Kamada-Kawai layout
-V(g)$size <- degree(g)
-V(g)$label.cex <- degree(g) * 0.2
-plot(g, layout=layout_with_kk)
+# CREATE EDGES
+## vectorize edge list
+edgeListVec <- as.vector(t(as.matrix(data.frame(S1=paste0('B',edgeList$businessID),
+                             S2=paste0('U',edgeList$userID)))))
+## add edges to graph
+g <- add.edges(g,edgeListVec)
+
+## set edge weight attribute
+E(g)$weight <- edgeList$weight
+E(g)$color <- "black"
 ```
+
+Verify network bipartite layout and weight attributes.
+
+```{r verify, echo=F}
+# VERIFY NETWORK LAYOUT/ATTRIBUTES 
+print(paste0("Is Bipartite: ", is.bipartite(g)))
+print(paste0("Is Weighted: ", is.weighted(g)))
+```
+
+
+View network: 
+
+```{r}
+# plot network (make businesses pink squares and make users blue circles)
+plot.igraph(g, 
+            layout=layout.bipartite, 
+            vertex.frame.color="black",
+            vertex.label=NA)
+
+```
+
 
 # Text Analysis
 
