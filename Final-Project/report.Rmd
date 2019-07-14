@@ -114,6 +114,36 @@ net <- simplify(net, remove.multiple = F, remove.loops = T)
 plot(net,vertex.label=NA)
 ```
 
+```{r}
+#prepare data
+business <- unique(relationship$business_name)
+business <- as.character(relationship$business_name)
+user <- as.character(relationship$user_name)
+
+#create dataframe
+df <- cbind(business, user)
+
+#create network data
+g<- graph.data.frame(df, directed=FALSE)
+bipartite.mapping(g)
+V(g)$type <- bipartite_mapping(g)$type 
+
+#plot network
+plot(g)
+plot(g, layout=layout.bipartite)
+ 
+#Make businesses pink squares and make users blue circles 
+V(g)$color <- ifelse(V(g)$type, "lightblue", "salmon")
+V(g)$shape <- ifelse(V(g)$type, "circle", "square")
+E(g)$color <- "lightgray"
+plot(g, vertex.label.cex = 0.8, vertex.label.color = "black")
+
+#Kamada-Kawai layout
+V(g)$size <- degree(g)
+V(g)$label.cex <- degree(g) * 0.2
+plot(g, layout=layout_with_kk)
+```
+
 # Text Analysis
 
 Possible reference: https://towardsdatascience.com/sentiment-analysis-with-text-mining-13dd2b33de27
