@@ -10,7 +10,7 @@ output:
     toc_float: true
     toc_depth: 2
     df_print: paged
-    code_folding: hide
+    code_folding: show
 ---
 
 
@@ -25,7 +25,7 @@ We have a two-part goal in this assignment:
 
 ```{r dependencies, echo=F, warning=F, message=F, comment=F}
 ## data processing packages
-library(dplyr); library(tidyr)
+library(tidyverse)
 
 ##formatting packages
 library(knitr); library(kableExtra); library(default)
@@ -47,23 +47,19 @@ default(kable_styling)  <- list(bootstrap_options = "hover",full_width=T, font_s
 default(scroll_box) <- list(width = "100%")
 ```
 
-## Data Aquisition & Tidying
+## Data Aquisition & Tidying {.tabset .tabset-fade .tabset-pills}
 
 Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D212-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
 
-```{r aquisition}
+We added additional transformations to meet our project goals and separated the data into seperate dataframes for network building and text processing. 
+
+```{r aquisition-tidying, echo=F}
 # load data
 yelp<- read.csv("data/yelp.csv"); yelp <- select(yelp,-X, -business_id, -user_id) %>% rename(businessID = itemID)
-```
 
-## Data Tidying {.tabset .tabset-fade .tabset-pills}
-
-Data was transformed and separated into two dataframes for network building and text processing. 
-
-```{r transformations}
 # transform data for network analysis 
 yelp_network <- yelp %>% 
-  select(userID, businessID, name, stars) %>% 
+  select(userID, businessID, name, stars, latitude, longitude) %>% 
   group_by(businessID) %>% 
   add_count() %>%
   rename(size = n)%>%
@@ -71,7 +67,7 @@ yelp_network <- yelp %>%
   group_by(userID) %>% 
   add_count() %>%
   rename(weight = n)%>%
-  ungroup()
+  ungroup() 
 
 # transform data for text processing 
 yelp_reviews <- yelp %>% 
@@ -96,91 +92,87 @@ yelp_reviews
 
 # Network Analysis
 
-## 2-Mode Network
+## 2-Mode Network  {.tabset .tabset-fade .tabset-pills}
 
-We created a 2-mode network from our connections between business entities and yelp users. 
+We set up our initial 2-mode network by connecting our businesses and users using a weighted incidence matrix. We plotted our graph using the `plot.igraph` function and verified our network was created properly. 
 
-```{r network-setup}
-# NETWORK INPUTS
-business_nodes <- unique(yelp_network$businessID)
-user_nodes <- unique(yelp_network$userID)
-edgeList <- yelp_network %>% select(businessID, userID, weight, size)
+### Build Network
 
-# CREATE GRAPH
-g <- graph.empty(directed=F)
+```{r build-network}
+# define edges; spread data from long to wide; convert to matrix
+edges <- yelp_network %>% 
+  select(businessID, userID, weight) %>% 
+  spread(businessID, weight, fill = 0) %>% 
+  column_to_rownames('userID') %>%
+  as.matrix()
 
-# ADD VERTICES TO GRAPH
-## Business Nodes (red)
-g <- add.vertices(g, 
-                  nv=length(business_nodes), # number of vertices to add 
-                  color = 'red',
-                  attr=list(name=paste0('B',business_nodes),type=rep(TRUE)))
-## User Nodes (white)
-g <- add.vertices(g,
-                  nv=length(user_nodes),
-                  color = 'white',
-                  attr=list(name=paste0('U',user_nodes), type=rep(FALSE)))
+# define nodesets 
+business_nodes <- yelp_network %>% 
+  select(businessID, name, size) %>% 
+  mutate(type = 'business', name = as.character(name)) %>% 
+  distinct()
 
-## Set Node Attribute based on T/F type
+user_nodes <- yelp_network %>% 
+  select(userID) %>% 
+  mutate(name=paste0("U",userID),sizes = NA, type = 'user') %>% 
+  distinct()
+
+# bind rows
+nodes <- bind_rows(business_nodes,user_nodes)
+
+# initiate graph from matrix
+g <- graph_from_incidence_matrix(edges, weighted=T)
+
+# Define vertex color/shape
 V(g)$shape <- ifelse(V(g)$type, "circle", "square")
-
-## Set size of nodes based on degree
-#deg <- degree(g, mode="all")
-#V(g)$size <- ifelse(V(g)$type, V(g)$size, 10)
-
-# CREATE EDGES
-## vectorize edge list
-edgeListVec <- as.vector(t(as.matrix(data.frame(Business=paste0('B',edgeList$businessID),
-                             User=paste0('U',edgeList$userID)))))
-## add edges to graph
-g <- add.edges(g,edgeListVec)
-
-## set edge weight attribute
-E(g)$weight <- edgeList$weight
-E(g)$color <- "gray"
-
-## set edge width based on weight:
-E(g)$width <- E(g)$weight/20
-
-# SIMPLIFY
-g<-simplify(g, remove.multiple = T, remove.loops = T) 
+V(g)$color <- ifelse(V(g)$type, "red", "white")
 ```
 
-Verify network bipartite layout and weight attributes.
+### Network Graph
 
-```{r verify, echo=F}
-# VERIFY NETWORK LAYOUT/ATTRIBUTES 
-
-Is.Weighted <- is.weighted(g)
-Is.Bipartite <- is.bipartite(g)
-
-rbind(Is.Weighted, Is.Bipartite) %>% kable() %>% kable_styling()
-```
-
-
-### Visualize Network 
-
-```{r view-network, echo=F}
+```{r plot-graph, echo=F}
+# Plot network
 plot.igraph(g, 
             layout=layout.bipartite, 
             vertex.frame.color="black",
             vertex.label=NA)
 ```
-View degrees:
 
-```{r}
-degree(g, v = V(g)$type==FALSE, mode='all')
+### Verification
 
+```{r verify-network, echo=F}
+# verify vertices (F = User; T = Business)
+node_count <-table(V(g)$type==T)
+
+# Verify connections
+rbind(Business.Nodes = toString(node_count[2]), 
+      User.Nodes = toString(node_count[1]),
+      Is.Weighted = toString(is.weighted(g)), 
+      Is.Bipartite = toString(is.bipartite(g))) %>%
+  kable(caption="Verify Node Counts and Connectivity") %>%
+  kable_styling()
+```
+
+## Edge-Trimming  {.tabset .tabset-fade .tabset-pills}
+
+To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
+
+## Locality Network  {.tabset .tabset-fade .tabset-pills}
+
+```{r include=F, eval=F}
+library(maps)
+library(geosphere)
+library(tigris)
+
+map(database = "county", regions = "arizona",col="tomato",  border="gray10", fill=TRUE)
+points(x=yelp_network$longitude, y=yelp_network$latitude, pch=19, cex=yelp_network$size/50, col="orange")
 
 ```
 
-```{r}
-edges <- yelp_network %>% select(businessID, userID, weight) %>% spread(businessID, weight)
-rownames(edges)<-edges$userID 
-links <-edges %>% select(-userID)
-links <- as.matrix(edges)
+```{r include=F, eval=F}
+lookup_code("Arizona","Scottsdale")
 
-links
+yelp %>% select(city) %>% group_by(city) %>% tally() %>% arrange(desc(n))
 ```
 
 
