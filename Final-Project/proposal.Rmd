@@ -1,75 +1,70 @@
 ---
 title: "Data 620 - Final Project Proposal"
 author: "Juliann McEachern"
-date: "July 10, 2019"
+date: "July 14, 2019"
 output:
   html_document:
     theme: flatly
-    highlight: tango
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+# Proposal: Analysis of Yelp Reviews
 
-# Proposal: Police Misconduct Network Analysis
+### Motivation: 
 
-**Your proposal should describe at a high level what you’re seeking to accomplish, and your motivation for performing this analysis.** 
+1.  Identify the links between key Yelp users and businesses within the Phoenix, Arizona community.  
+2.  Evaluate the relationship between the text contents of reviews and the rating a business received. 
 
-Motivation: Examine the affect Civilian Office of Police Accountability (COPA) has had on policy accounability and transparency since implimentation in 2017. 
+### Data Source:
 
-*Insert brief history and explination of COPA. Cite sources in text & reference section.*
+The data will be obtained from a subset of Kaggle's 2013 [Yelp Review Challenge](https://www.kaggle.com/c/yelp-recsys-2013/data) to include only businesses within the food and beverage industries that operate in the Phoenix, Arizona metropolitan area. Inspiration for this project comes from a concurrent assignment for [Data 612](http://rpubs.com/jemceach/612-Final-Project), in which the data is being used to build a recommender system. 
 
-## Project Goals
 
-**A guiding question or hypothesis to test is one good way to start.  If you are building a model or models, explain how you evaluate the “goodness” of the chosen model and parameters.**
+# Project Goals
 
-Possible considerations: 
+### Network Analysis:
 
-1.  Time series network data to see how COPA implimentation in 2017 has affected the quantity of civilian complaints and the outcome of resolved cases. 
-2.  Network analysis of race, incident type, incident locations, officer involvement, officer age, etc. 
+Our two-node network will consist of Yelp businesses and users. The relationship strength will be based on the number of reviews total reviews received for each business. Through this network, we seek to understand:
 
-*Insert other ideas here. Goals will be refined through group discussion in the slack channel.*
+1. Who are the most active users?
+2. Which businesses are most popular within our network?
 
-## Data Source
+### Sentiment Analysis:
 
-**Describe your data sources.**
+Using sentiment analysis, we will attempt to classify reviews as negative, neutral or positive. We will use natural language processing to examine the following questions:
 
-OpenSource data from the City of Chicago. Data has been obtained using the Socrata API in Python and stored as a CSV file within our repository for reproducibility purposes. 
+1. Do funny/cool/useful review attributes affect stars? 
+2. Does review text affect the funny/cool/useful review attribute?
+3. Can review text determine if a business receives a high or low rating (stars)?
 
-*Insert additional details of the information available for analysis.*
-
-## Work Plan 
-
-**Plan for doing the work.  If you are working in a group, please describe the roles and responsibilities of each group member.**
+# Work Plan 
 
 1.  Proposal: Juliann
 2.  Data Aquisition: Juliann
 3.  Data Preparation: Juliann
 4.  Data Exploration: Juliann
-5.  Network Design: Juliann
-6.  Network Analysis: Juliann
-7.  Conclusion: Juliann
-8.  Formatting and Review: Juliann
-9.  Final Presentation Video: Juliann
-10.  Final Presentation: Juliann 
+5.  Network Design: Juliann/Katie
+6.  Network Analysis: Juliann/Katie
+7.  Sentiment Analysis: Anthony/Mia
+8.  Conclusion: Juliann/Katie/Anthony/Mia
+9.  Formatting and Review: Juliann
+10.  Final Presentation Video: Juliann
+11.  Final Presentation: Juliann 
 
+# Concerns
 
-*Team members: Please add where you plan on contributing and include details on what your contribution will include and when it will be done by.*
-
-## Concerns
-
-**List of up front concerns:**
+Up-front concerns for project completion:
 
 1.  Transitioning from iPython to R to build and analyze network data. 
 2.  Managing workflow between team members in a timely manner.
 3.  Receiving reasonable participation from all members and quality contributions to project.
 4.  Collaborating on work simulatneously in GitHub. 
 
-## References
+----------
 
-References should be properly cited in final project (APA). This will do as a start for now. 
+# References
 
-1.  About COPA: https://www.chicagocopa.org/about-copa/mission-history/
-2.  Data Source: https://data.cityofchicago.org/
+Inspiration for this project has been derrived from the following sources: 
+
+1.  Data Source: https://www.kaggle.com/c/yelp-recsys-2013/data
+2.  Related Project: http://rpubs.com/jemceach/D612-Final-Project
 3.  R Network Reference: https://kateto.net/network-visualization
