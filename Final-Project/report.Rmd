@@ -157,23 +157,6 @@ rbind(Business.Nodes = toString(node_count[2]),
 
 To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
 
-## Locality Network  {.tabset .tabset-fade .tabset-pills}
-
-```{r include=F, eval=F}
-library(maps)
-library(geosphere)
-library(tigris)
-
-map(database = "county", regions = "arizona",col="tomato",  border="gray10", fill=TRUE)
-points(x=yelp_network$longitude, y=yelp_network$latitude, pch=19, cex=yelp_network$size/50, col="orange")
-
-```
-
-```{r include=F, eval=F}
-lookup_code("Arizona","Scottsdale")
-
-yelp %>% select(city) %>% group_by(city) %>% tally() %>% arrange(desc(n))
-```
 
 
 # Text Analysis
