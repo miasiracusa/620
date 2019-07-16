@@ -157,7 +157,22 @@ rbind(Business.Nodes = toString(node_count[2]),
 
 To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
 
+```{r}
+edgesDf <- yelp_network %>% 
+  select(businessID, userID, weight)
 
+weight <- as.numeric(unlist(edgesDf$weight))
+
+head(edgesDf)
+
+hist(weight)
+mean(weight)
+sd(weight)
+
+cut.off <- mean(weight)
+net.sp <- delete_edges(g, E(g)[weight<cut.off])
+plot(net.sp)
+```
 
 # Text Analysis
 
