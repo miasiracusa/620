@@ -164,7 +164,7 @@ To better understand our network, we applied the island method to see our most i
 edgesDf <- yelp_network %>% 
   select(businessID, userID, weight)
 
-Cconvert weight to numeric
+#Convert weight to numeric
 weight <- as.numeric(unlist(edgesDf$weight))
 
 head(edgesDf)
@@ -175,7 +175,7 @@ hist(weight)
 mean(weight)
 sd(weight)
 
-Kkeep edges that have weight higher than the mean
+#Keep edges that have weight higher than the mean
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
 plot(net.sp)
