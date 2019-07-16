@@ -158,17 +158,24 @@ rbind(Business.Nodes = toString(node_count[2]),
 To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
 
 ```{r}
+#In order to see our network better, we are going to sparsify it by only keeping only the most important ties and discarding the rest
+
+#Modify data frame
 edgesDf <- yelp_network %>% 
   select(businessID, userID, weight)
 
+Cconvert weight to numeric
 weight <- as.numeric(unlist(edgesDf$weight))
 
 head(edgesDf)
 
+#Examine frquency of weight
 hist(weight)
+#Calculate mean and standard deviation
 mean(weight)
 sd(weight)
 
+Kkeep edges that have weight higher than the mean
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
 plot(net.sp)
