@@ -1,0 +1,70 @@
+---
+title: "Data 620 - Final Project Proposal"
+author: "Juliann McEachern"
+date: "July 14, 2019"
+output:
+  html_document:
+    theme: flatly
+---
+
+# Proposal: Analysis of Yelp Reviews
+
+### Motivation: 
+
+1.  Identify the links between key Yelp users and businesses within the Phoenix, Arizona community.  
+2.  Evaluate the relationship between the text contents of reviews and the rating a business received. 
+
+### Data Source:
+
+The data will be obtained from a subset of Kaggle's 2013 [Yelp Review Challenge](https://www.kaggle.com/c/yelp-recsys-2013/data) to include only businesses within the food and beverage industries that operate in the Phoenix, Arizona metropolitan area. Inspiration for this project comes from a concurrent assignment for [Data 612](http://rpubs.com/jemceach/612-Final-Project), in which the data is being used to build a recommender system. 
+
+
+# Project Goals
+
+### Network Analysis:
+
+Our two-node network will consist of Yelp businesses and users. The relationship strength will be based on the number of reviews total reviews received for each business. Through this network, we seek to understand:
+
+1. Who are the most active users?
+2. Which businesses are most popular within our network?
+
+### Sentiment Analysis:
+
+Using sentiment analysis, we will attempt to classify reviews as negative, neutral or positive. We will use natural language processing to examine the following questions:
+
+1. Do funny/cool/useful review attributes affect stars? 
+2. Does review text affect the funny/cool/useful review attribute?
+3. Can review text determine if a business receives a high or low rating (stars)?
+
+# Work Plan 
+
+1.  Proposal: Juliann
+2.  Data Aquisition: Juliann
+3.  Data Preparation: Juliann
+4.  Data Exploration: Juliann
+5.  Network Design: Juliann/Katie
+6.  Network Analysis: Juliann/Katie
+7.  Sentiment Analysis: Anthony/Mia
+8.  Conclusion: Juliann/Katie/Anthony/Mia
+9.  Formatting and Review: Juliann
+10.  Final Presentation Video: Juliann
+11.  Final Presentation: Juliann 
+
+# Concerns
+
+Up-front concerns for project completion:
+
+1.  Transitioning from iPython to R to build and analyze network data. 
+2.  Managing workflow between team members in a timely manner.
+3.  Receiving reasonable participation from all members and quality contributions to project.
+4.  Collaborating on work simulatneously in GitHub. 
+
+----------
+
+# References
+
+Inspiration for this project has been derrived from the following sources: 
+
+1.  Data Source: https://www.kaggle.com/c/yelp-recsys-2013/data
+2.  Related Project: http://rpubs.com/jemceach/D612-Final-Project
+3.  R Network Reference: https://kateto.net/network-visualization

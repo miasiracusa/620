@@ -1,0 +1,202 @@
+---
+title: "Yelp Review Analysis"
+author: "Juliann McEachern"
+date: "July 17, 2019"
+output: 
+  html_document:
+    theme: paper
+    highlight: pygments
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    df_print: paged
+    code_folding: show
+---
+
+
+# Final Project 
+
+For the final project, we will be examining the relationship between yelp reviews and businesses in the metropolitan area of Phoenix, Arizona. The data was obtained from Kaggle's 2013 Yelp Review Challenge and was subsetted to include only businesses within the food and beverage industries.
+
+We have a two-part goal in this assignment:
+
+1.  Identify the links between key Yelp users and businesses within the Phoenix, Arizona community.  
+2.  Evaluate the relationship between the text contents of reviews and the rating a business received. 
+
+```{r dependencies, echo=F, warning=F, message=F, comment=F}
+## data processing packages
+library(tidyverse)
+
+##formatting packages
+library(knitr); library(kableExtra); library(default)
+
+##network packages
+library(igraph)
+
+## knit sizing
+options(max.print="100"); opts_knit$set(width=75) 
+
+
+## augment chunk output
+opts_chunk$set(echo=T,cache=F, tidy=T,comment=F,message=T,warning=T) #change message/warning to F upon completion
+
+
+## set table style for consistency
+default(kable) <- list(format="html")
+default(kable_styling)  <- list(bootstrap_options = "hover",full_width=T, font_size=10)
+default(scroll_box) <- list(width = "100%")
+```
+
+## Data Aquisition & Tidying {.tabset .tabset-fade .tabset-pills}
+
+Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D212-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
+
+We added additional transformations to meet our project goals and separated the data into seperate dataframes for network building and text processing. 
+
+```{r aquisition-tidying, echo=F}
+# load data
+yelp<- read.csv("data/yelp.csv"); yelp <- select(yelp,-X, -business_id, -user_id) %>% rename(businessID = itemID)
+
+# transform data for network analysis 
+yelp_network <- yelp %>% 
+  select(userID, businessID, name, stars, latitude, longitude) %>% 
+  group_by(businessID) %>% 
+  add_count() %>%
+  rename(size = n)%>%
+  ungroup() %>%
+  group_by(userID) %>% 
+  add_count() %>%
+  rename(weight = n)%>%
+  ungroup() 
+
+# transform data for text processing 
+yelp_reviews <- yelp %>% 
+  transform(reviewID=match(review_id, unique(review_id))) %>% 
+  select(-review_id, -longitude, -latitude) %>%
+  select(userID, businessID, reviewID, name, city, state, votes.funny, votes.useful, votes.cool, 
+         stars, text, date)
+```
+
+### Network Data 
+```{r view-network-data, echo=F}
+yelp_network
+```
+
+
+### Text Data 
+
+```{r view-text-data, echo=F}
+yelp_reviews
+```
+
+
+# Network Analysis
+
+## 2-Mode Network  {.tabset .tabset-fade .tabset-pills}
+
+We set up our initial 2-mode network by connecting our businesses and users using a weighted incidence matrix. We plotted our graph using the `plot.igraph` function and verified our network was created properly. 
+
+### Build Network
+
+```{r build-network}
+# define edges; spread data from long to wide; convert to matrix
+edges <- yelp_network %>% 
+  select(businessID, userID, weight) %>% 
+  spread(businessID, weight, fill = 0) %>% 
+  column_to_rownames('userID') %>%
+  as.matrix()
+
+# define nodesets 
+business_nodes <- yelp_network %>% 
+  select(businessID, name, size) %>% 
+  mutate(type = 'business', name = as.character(name)) %>% 
+  distinct()
+
+user_nodes <- yelp_network %>% 
+  select(userID) %>% 
+  mutate(name=paste0("U",userID),sizes = NA, type = 'user') %>% 
+  distinct()
+
+# bind rows
+nodes <- bind_rows(business_nodes,user_nodes)
+
+# initiate graph from matrix
+g <- graph_from_incidence_matrix(edges, weighted=T)
+
+# Define vertex color/shape
+V(g)$shape <- ifelse(V(g)$type, "circle", "square")
+V(g)$color <- ifelse(V(g)$type, "red", "white")
+```
+
+### Network Graph
+
+```{r plot-graph, echo=F}
+# Plot network
+plot.igraph(g, 
+            layout=layout.bipartite, 
+            vertex.frame.color="black",
+            vertex.label=NA)
+```
+
+### Verification
+
+```{r verify-network, echo=F}
+# verify vertices (F = User; T = Business)
+node_count <-table(V(g)$type==T)
+
+# Verify connections
+rbind(Business.Nodes = toString(node_count[2]), 
+      User.Nodes = toString(node_count[1]),
+      Is.Weighted = toString(is.weighted(g)), 
+      Is.Bipartite = toString(is.bipartite(g))) %>%
+  kable(caption="Verify Node Counts and Connectivity") %>%
+  kable_styling()
+```
+
+## Edge-Trimming  {.tabset .tabset-fade .tabset-pills}
+
+To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
+
+```{r}
+#In order to see our network better, we are going to sparsify it by only keeping only the most important ties and discarding the rest
+
+#Modify data frame
+edgesDf <- yelp_network %>% 
+  select(businessID, userID, weight)
+
+#Convert weight to numeric
+weight <- as.numeric(unlist(edgesDf$weight))
+
+head(edgesDf)
+
+#Examine frquency of weight
+hist(weight)
+#Calculate mean and standard deviation
+mean(weight)
+sd(weight)
+
+#Keep edges that have weight higher than the mean
+cut.off <- mean(weight)
+net.sp <- delete_edges(g, E(g)[weight<cut.off])
+plot(net.sp)
+```
+
+# Text Analysis
+
+Possible reference: https://towardsdatascience.com/sentiment-analysis-with-text-mining-13dd2b33de27
+
+# Conclusion
+
+Final thoughts. 
+
+----------
+
+# References
+
+Inspiration for this project was derrived from the following sources: 
+
+1.  Data Source: https://www.kaggle.com/c/yelp-recsys-2013/data
+2.  Related Project: http://rpubs.com/jemceach/D612-Final-Project
+3.  R Network Reference: https://kateto.net/network-visualization
+
+
