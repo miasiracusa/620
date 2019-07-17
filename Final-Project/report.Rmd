@@ -1,6 +1,6 @@
 ---
-title: "Yelp Review Analysis"
-author: "Juliann McEachern"
+title: "Network & Text Analysis of Yelp Reviews"
+author: "Juliann McEachern, Mia Siracusa, Anthony Munoz, Katie Evers"
 date: "July 17, 2019"
 output: 
   html_document:
