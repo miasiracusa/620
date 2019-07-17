@@ -1,6 +1,6 @@
 ---
-title: "Yelp Review Analysis"
-author: "Juliann McEachern"
+title: "Network & Text Analysis of Yelp Reviews"
+author: "Juliann McEachern, Mia Siracusa, Anthony Munoz, Katie Evers"
 date: "July 17, 2019"
 output: 
   html_document:
@@ -10,7 +10,7 @@ output:
     toc_float: true
     toc_depth: 2
     df_print: paged
-    code_folding: hide
+    code_folding: show
 ---
 
 
@@ -24,18 +24,17 @@ We have a two-part goal in this assignment:
 2.  Evaluate the relationship between the text contents of reviews and the rating a business received. 
 
 ```{r dependencies, echo=F, warning=F, message=F, comment=F}
-## data processing packages
-library(dplyr); library(tidyr)
+##network packages
+library(igraph)
+
+## text processing packages
+library(plyr);library(dplyr); library(tidyverse); library(stringr); library(tidytext); library(textdata)
 
 ##formatting packages
 library(knitr); library(kableExtra); library(default)
 
-##network packages
-library(igraph)
-
 ## knit sizing
 options(max.print="100"); opts_knit$set(width=75) 
-
 
 ## augment chunk output
 opts_chunk$set(echo=T,cache=F, tidy=T,comment=F,message=T,warning=T) #change message/warning to F upon completion
@@ -47,23 +46,19 @@ default(kable_styling)  <- list(bootstrap_options = "hover",full_width=T, font_s
 default(scroll_box) <- list(width = "100%")
 ```
 
-## Data Aquisition & Tidying
+## Data Aquisition & Tidying {.tabset .tabset-fade .tabset-pills}
 
 Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D212-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
 
-```{r aquisition}
+We added additional transformations to meet our project goals and separated the data into seperate dataframes for network building and text processing. 
+
+```{r aquisition-tidying, echo=F}
 # load data
 yelp<- read.csv("data/yelp.csv"); yelp <- select(yelp,-X, -business_id, -user_id) %>% rename(businessID = itemID)
-```
 
-## Data Tidying {.tabset .tabset-fade .tabset-pills}
-
-Data was transformed and separated into two dataframes for network building and text processing. 
-
-```{r transformations}
 # transform data for network analysis 
 yelp_network <- yelp %>% 
-  select(userID, businessID, name, stars) %>% 
+  select(userID, businessID, name, stars, latitude, longitude) %>% 
   group_by(businessID) %>% 
   add_count() %>%
   rename(size = n)%>%
@@ -71,7 +66,7 @@ yelp_network <- yelp %>%
   group_by(userID) %>% 
   add_count() %>%
   rename(weight = n)%>%
-  ungroup()
+  ungroup() 
 
 # transform data for text processing 
 yelp_reviews <- yelp %>% 
@@ -96,97 +91,221 @@ yelp_reviews
 
 # Network Analysis
 
-## 2-Mode Network
+## 2-Mode Network  {.tabset .tabset-fade .tabset-pills}
 
-We created a 2-mode network from our connections between business entities and yelp users. 
+We set up our initial 2-mode network by connecting our businesses and users using a weighted incidence matrix. We plotted our graph using the `plot.igraph` function and verified our network was created properly. 
 
-```{r network-setup}
-# NETWORK INPUTS
-business_nodes <- unique(yelp_network$businessID)
-user_nodes <- unique(yelp_network$userID)
-edgeList <- yelp_network %>% select(businessID, userID, weight, size)
+### Build Network
 
-# CREATE GRAPH
-g <- graph.empty(directed=F)
+```{r build-network}
+# define edges; spread data from long to wide; convert to matrix
+edges <- yelp_network %>% 
+  select(businessID, userID, weight) %>% 
+  spread(businessID, weight, fill = 0) %>% 
+  column_to_rownames('userID') %>%
+  as.matrix()
 
-# ADD VERTICES TO GRAPH
-## Business Nodes (red)
-g <- add.vertices(g, 
-                  nv=length(business_nodes), # number of vertices to add 
-                  color = 'red',
-                  attr=list(name=paste0('B',business_nodes),type=rep(TRUE)))
-## User Nodes (white)
-g <- add.vertices(g,
-                  nv=length(user_nodes),
-                  color = 'white',
-                  attr=list(name=paste0('U',user_nodes), type=rep(FALSE)))
+# define nodesets 
+business_nodes <- yelp_network %>% 
+  select(businessID, name, size) %>% 
+  mutate(type = 'business', name = as.character(name)) %>% 
+  distinct()
 
-## Set Node Attribute based on T/F type
+user_nodes <- yelp_network %>% 
+  select(userID) %>% 
+  mutate(name=paste0("U",userID),sizes = NA, type = 'user') %>% 
+  distinct()
+
+# bind rows
+nodes <- bind_rows(business_nodes,user_nodes)
+
+# initiate graph from matrix
+g <- graph_from_incidence_matrix(edges, weighted=T)
+
+# Define vertex color/shape
 V(g)$shape <- ifelse(V(g)$type, "circle", "square")
-
-## Set size of nodes based on degree
-#deg <- degree(g, mode="all")
-#V(g)$size <- ifelse(V(g)$type, V(g)$size, 10)
-
-# CREATE EDGES
-## vectorize edge list
-edgeListVec <- as.vector(t(as.matrix(data.frame(Business=paste0('B',edgeList$businessID),
-                             User=paste0('U',edgeList$userID)))))
-## add edges to graph
-g <- add.edges(g,edgeListVec)
-
-## set edge weight attribute
-E(g)$weight <- edgeList$weight
-E(g)$color <- "gray"
-
-## set edge width based on weight:
-E(g)$width <- E(g)$weight/20
-
-# SIMPLIFY
-g<-simplify(g, remove.multiple = T, remove.loops = T) 
+V(g)$color <- ifelse(V(g)$type, "red", "white")
 ```
 
-Verify network bipartite layout and weight attributes.
+### Network Graph
 
-```{r verify, echo=F}
-# VERIFY NETWORK LAYOUT/ATTRIBUTES 
-
-Is.Weighted <- is.weighted(g)
-Is.Bipartite <- is.bipartite(g)
-
-rbind(Is.Weighted, Is.Bipartite) %>% kable() %>% kable_styling()
-```
-
-
-### Visualize Network 
-
-```{r view-network, echo=F}
+```{r plot-graph, echo=F}
+# Plot network
 plot.igraph(g, 
             layout=layout.bipartite, 
             vertex.frame.color="black",
             vertex.label=NA)
 ```
-View degrees:
 
-```{r}
-degree(g, v = V(g)$type==FALSE, mode='all')
+### Verification
 
+```{r verify-network, echo=F}
+# verify vertices (F = User; T = Business)
+node_count <-table(V(g)$type==T)
 
+# Verify connections
+rbind(Business.Nodes = toString(node_count[2]), 
+      User.Nodes = toString(node_count[1]),
+      Is.Weighted = toString(is.weighted(g)), 
+      Is.Bipartite = toString(is.bipartite(g))) %>%
+  kable(caption="Verify Node Counts and Connectivity") %>%
+  kable_styling()
 ```
 
+## Edge-Trimming  {.tabset .tabset-fade .tabset-pills}
+
+To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
+
 ```{r}
-edges <- yelp_network %>% select(businessID, userID, weight) %>% spread(businessID, weight)
-rownames(edges)<-edges$userID 
-links <-edges %>% select(-userID)
-links <- as.matrix(edges)
+#In order to see our network better, we are going to sparsify it by only keeping only the most important ties and discarding the rest
 
-links
+#Modify data frame
+edgesDf <- yelp_network %>% 
+  select(businessID, userID, weight)
+
+#Convert weight to numeric
+weight <- as.numeric(unlist(edgesDf$weight))
+
+head(edgesDf)
+
+#Examine frquency of weight
+hist(weight)
+#Calculate mean and standard deviation
+mean(weight)
+sd(weight)
+
+#Keep edges that have weight higher than the mean
+cut.off <- mean(weight)
+net.sp <- delete_edges(g, E(g)[weight<cut.off])
+plot(net.sp)
 ```
-
 
 # Text Analysis
 
-Possible reference: https://towardsdatascience.com/sentiment-analysis-with-text-mining-13dd2b33de27
+We would like to asses each word in the reviews as either positive or negative and find the difference between the number of positive and negative words. This will be the "score" of the review. 
+
+## Sentiment Function
+
+First, we will use the Bing sentiment lexicon from the tidytext package. The Bing lexicon classifies certain words as either positive or negative. 
+
+```{r}
+# positive / negative sentiment function
+m <- get_sentiments("bing")
+
+pos.words <- vector()
+neg.words <- vector()
+
+for (i in 1:nrow(m)) {
+    if (m$sentiment[i] == "positive") {
+        pos.words[i] <- m$word[i]
+    }
+}
+
+
+for (i in 1:nrow(m)) {
+    if (m$sentiment[i] == "negative") {
+        neg.words[i] <- m$word[i]
+    }
+}
+
+
+pos.words[5]
+neg.words[5]
+```
+
+Then, we created a function that splits the string of text form the reviews and analyzes each word, and then calculates the score. **Reference source.**
+
+```{r}
+v <- as.character(as.vector(yelp_reviews$text))
+
+score.sentiment = function(v, pos.words, neg.words, .progress = "none") {
+    require(plyr)
+    require(stringr)
+    
+    # we got a vector of sentences. plyr will handle a list or a vector as an
+    # "l" for us we want a simple array ("a") of scores back, so we use "l" +
+    # "a" + "ply" = "laply":
+    
+    scores = laply(v, function(sentence, pos.words, neg.words) {
+        
+        # clean up sentences with R's regex-driven global substitute, gsub():
+        sentence = gsub("[[:punct:]]", "", sentence)
+        sentence = gsub("[[:cntrl:]]", "", sentence)
+        sentence = gsub("\\d+", "", sentence)
+        # and convert to lower case:
+        sentence = tolower(sentence)
+        
+        # split into words. str_split is in the stringr package
+        word.list = str_split(sentence, "\\s+")
+        # sometimes a list() is one level of hierarchy too much
+        words = unlist(word.list)
+        
+        # compare our words to the dictionaries of positive & negative terms
+        pos.matches = match(words, pos.words)
+        neg.matches = match(words, neg.words)
+        
+        # match() returns the position of the matched term or NA we just want a
+        # TRUE/FALSE:
+        pos.matches = !is.na(pos.matches)
+        neg.matches = !is.na(neg.matches)
+        
+        # and conveniently enough, TRUE/FALSE will be treated as 1/0 by sum():
+        score = sum(pos.matches) - sum(neg.matches)
+        
+        return(score)
+    }, pos.words, neg.words, .progress = .progress)
+    
+    scores.df = data.frame(score = scores, text = v)
+    return(scores.df)
+}
+```
+
+## Visualize Relationships {.tabset .tabset-fade .tabset-pills}
+
+We added the scores for each review to the original dataframe. Once this step is finished, it will make analysis much easier. Below, I've compared some of the variables to explore the relationships between score of reviews and the stars associated with the reviews.
+
+```{r}
+t <- score.sentiment(v, pos.words, neg.words)
+full <- inner_join(t, yelp_reviews, by = "text")
+```
+
+
+### Stars Score
+
+```{r}
+plot(full$stars, full$score)
+```
+
+### Funny Score
+```{r}
+plot(full$votes.funny, full$score)
+```
+
+### Useful Score
+```{r}
+plot(full$votes.useful, full$score)
+```
+
+### Cool Score
+```{r}
+plot(full$votes.cool, full$score)
+```
+
+### Analysis 
+
+The most interesting plot to examine further would be the stars vs score. It appears that as stars increase, so does the score. We will test if there is actually a relationship.
+
+## Correlation
+```{r}
+cor(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
+```
+
+The p-value is .04418, so at a 95% confidence interval, we can say that there is positive relationship between stars and the amount of positive words in the reviews of restaurants.
+
+```{r}
+cor.test(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
+```
+
 
 # Conclusion
 
