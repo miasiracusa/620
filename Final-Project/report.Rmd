@@ -178,6 +178,31 @@ sd(weight)
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
 plot(net.sp)
+
+
+#It is still difficult to see the network so we will try eliminating weak vertices
+
+#Eliminate vertices with degree 0
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) == 0] )
+plot(net.sp)
+
+#Calculate mean degrees of network
+mean(degree(g))
+
+#Eliminate vertices with degreea less than rounded mean
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) < 6] )
+plot(net.sp)
+
+
+#We can see the most influential user and businesses from the visualization. The user and business names are identified in the tibbles below.
+
+#User IDs and names tibble
+rbind(user_nodes[2308,], user_nodes[3667,], user_nodes[1342,]) 
+
+#Business IDs and names tibble
+rbind(business_nodes[2244,], business_nodes[1239,], business_nodes[4102,], business_nodes[2704,])
 ```
 
 # Text Analysis
