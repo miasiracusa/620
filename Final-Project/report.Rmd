@@ -48,7 +48,7 @@ default(scroll_box) <- list(width = "100%")
 
 ## Data Aquisition & Tidying {.tabset .tabset-fade .tabset-pills}
 
-Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D212-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
+Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D612-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
 
 We added additional transformations to meet our project goals and separated the data into seperate dataframes for network building and text processing. 
 
@@ -154,11 +154,13 @@ rbind(Business.Nodes = toString(node_count[2]),
 
 ## Edge-Trimming  {.tabset .tabset-fade .tabset-pills}
 
-To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
+To better understand our network, we applied the island method to see our most influential user and businesses within our dataset. We made our network more sparse by only keeping only the most important ties and discarding the rest.
+
+### Examine Frequency
+
+We looked at a histogram of our edge weight to better understand our network. 
 
 ```{r}
-#In order to see our network better, we are going to sparsify it by only keeping only the most important ties and discarding the rest
-
 #Modify data frame
 edgesDf <- yelp_network %>% 
   select(businessID, userID, weight)
@@ -166,18 +168,65 @@ edgesDf <- yelp_network %>%
 #Convert weight to numeric
 weight <- as.numeric(unlist(edgesDf$weight))
 
-head(edgesDf)
-
-#Examine frquency of weight
+# Examine frquency of weight
 hist(weight)
-#Calculate mean and standard deviation
-mean(weight)
-sd(weight)
 
-#Keep edges that have weight higher than the mean
+# Calculate mean and standard deviation
+print(paste0('Mean:', round(mean(weight),2), ' Standard Deviation: ', round(sd(weight),2)))
+```
+
+### Plot 1
+
+In our first plot, kept edges that have weight higher than our mean cut off value. 
+
+```{r}
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
+plot.igraph(net.sp, vertex.label=NA)
+```
+
+### Plot 2
+
+It was still difficult to see the network, so we tried to instead eliminated weak vertices with 0 degrees of connectivity. 
+
+```{r}
+#Eliminate vertices with degree 0
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) == 0] )
+plot.igraph(net.sp, vertex.label=NA)
+```
+
+### Plot 3 
+
+In our final plot, we can see the most influential user and businesses which have a degree value that exceeds a degree of 6. 
+
+```{r}
+#Calculate mean degrees of network
+print(paste0("Mean degree: ", mean(degree(g))))
+
+#Eliminate vertices with degree less than rounded mean
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) < 6] )
 plot(net.sp)
+```
+
+### Key User Nodes
+
+The key user nodes are identified in the tibbles below.
+
+```{r, echo=F}
+#User IDs and names tibble
+rbind(user_nodes[2308,], user_nodes[3667,], user_nodes[1342,]) %>% select(-name, -sizes) %>% kable() %>% kable_styling()
+```
+
+### Key Business Nodes
+
+
+The key business nodes are identified in the tibbles below.
+
+```{r, echo=F}
+#Business IDs and names tibble
+rbind(business_nodes[2244,], business_nodes[1239,], business_nodes[4102,], business_nodes[2704,])
 ```
 
 # Text Analysis
@@ -269,25 +318,24 @@ t <- score.sentiment(v, pos.words, neg.words)
 full <- inner_join(t, yelp_reviews, by = "text")
 ```
 
-
 ### Stars Score
 
-```{r}
+```{r, echo=F}
 plot(full$stars, full$score)
 ```
 
 ### Funny Score
-```{r}
+```{r, echo=F}
 plot(full$votes.funny, full$score)
 ```
 
 ### Useful Score
-```{r}
+```{r, echo=F}
 plot(full$votes.useful, full$score)
 ```
 
 ### Cool Score
-```{r}
+```{r, echo=F}
 plot(full$votes.cool, full$score)
 ```
 
@@ -296,13 +344,13 @@ plot(full$votes.cool, full$score)
 The most interesting plot to examine further would be the stars vs score. It appears that as stars increase, so does the score. We will test if there is actually a relationship.
 
 ## Correlation
-```{r}
+```{r, echo=F}
 cor(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
 ```
 
 The p-value is .04418, so at a 95% confidence interval, we can say that there is positive relationship between stars and the amount of positive words in the reviews of restaurants.
 
-```{r}
+```{r, echo=F}
 cor.test(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
 ```
 
