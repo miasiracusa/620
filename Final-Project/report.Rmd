@@ -156,7 +156,7 @@ rbind(Business.Nodes = toString(node_count[2]),
 
 To better understand our network, we applied the island method to see our most influential user and businesses within our dataset. We made our network more sparse by only keeping only the most important ties and discarding the rest.
 
-### Examine Frequency
+### Frequency
 
 We looked at a histogram of our edge weight to better understand our network. 
 
@@ -170,7 +170,9 @@ weight <- as.numeric(unlist(edgesDf$weight))
 
 # Examine frquency of weight
 hist(weight)
+```
 
+```{r, echo=F}
 # Calculate mean and standard deviation
 print(paste0('Mean:', round(mean(weight),2), ' Standard Deviation: ', round(sd(weight),2)))
 ```
@@ -182,7 +184,7 @@ In our first plot, kept edges that have weight higher than our mean cut off valu
 ```{r}
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
-plot.igraph(net.sp, vertex.label=NA)
+plot(net.sp, layout = layout_with_kk)
 ```
 
 ### Plot 2
@@ -193,7 +195,7 @@ It was still difficult to see the network, so we tried to instead eliminated wea
 #Eliminate vertices with degree 0
 net.sp <- delete.vertices(g, 
             V(g)[ degree(g) == 0] )
-plot.igraph(net.sp, vertex.label=NA)
+plot(net.sp, layout = layout_with_kk)
 ```
 
 ### Plot 3 
@@ -207,7 +209,7 @@ print(paste0("Mean degree: ", mean(degree(g))))
 #Eliminate vertices with degree less than rounded mean
 net.sp <- delete.vertices(g, 
             V(g)[ degree(g) < 6] )
-plot(net.sp)
+plot(net.sp, layout = layout_with_kk)
 ```
 
 ### Key User Nodes
@@ -226,7 +228,7 @@ The key business nodes are identified in the tibbles below.
 
 ```{r, echo=F}
 #Business IDs and names tibble
-rbind(business_nodes[2244,], business_nodes[1239,], business_nodes[4102,], business_nodes[2704,])
+rbind(business_nodes[2244,], business_nodes[1239,], business_nodes[4102,], business_nodes[2704,])  %>% kable() %>% kable_styling()
 ```
 
 # Text Analysis
@@ -256,10 +258,16 @@ for (i in 1:nrow(m)) {
         neg.words[i] <- m$word[i]
     }
 }
+```
 
+Below are some examples of positive and negative words. 
 
-pos.words[5]
-neg.words[5]
+```{r, echo=F}
+print("Positive:")
+na.omit(pos.words[1:30])
+print("-------------------------------------------")
+print("Negative:")
+na.omit(neg.words[1:30])
 ```
 
 Then, we created a function that splits the string of text form the reviews and analyzes each word, and then calculates the score. **Reference source.**
@@ -358,6 +366,12 @@ cor.test(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
 # Conclusion
 
 Final thoughts. 
+
+
+# Video Presentations
+
+1. [Network Video](https://www.loom.com/share/6d17dc0d62694f739e89ba87d3477fed)
+2. [Text Mining (Part 1)](https://nbviewer.jupyter.org/github/Anth350z/Data_620/blob/master/Text%20Mining.ipynb)
 
 ----------
 
