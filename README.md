@@ -16,7 +16,7 @@ Academic coursework for DATA 620. Assignments and projects are designed to conce
 #### Project 1 - Network Analysis:  
 Task: Identify and load a network dataset that has some categorical information available for each node. For each of the nodes in the dataset, calculate degree centrality and eigenvector centrality. Compare your centrality measures across your categorical groups.
 
-#### Project 2 - Two-Mode Networks
+#### Project 2 - Two-Mode Networks:
 Task: Identify a large 2-mode network dataset—you can start with a dataset in a repository. Your data should meet the criteria that it consists of ties between and not within two (or more) distinct groups.
 Reduce the size of the network using a method such as the island method described in chapter 4 of social network analysis. What can you infer about each of the distinct groups?
 
