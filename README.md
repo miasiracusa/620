@@ -1,6 +1,6 @@
 # Network Analytics 
   
-Academic coursework for CUNY MSDS - DATA 620. Assignments and projects are designed to conceptualize network data through graphing and natural language processing techniques. 
+Assignments and projects are designed to conceptualize network data through graphing and natural language processing techniques. 
 
 ## Assignments 
 
