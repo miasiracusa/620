@@ -365,13 +365,16 @@ cor.test(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
 
 # Conclusion
 
-Final thoughts. 
+For the text analysis, our first step was to create a sentimental analysis of the reviews. We used the Bing lexicon from the tidytext package and analyzed each word from the reviews to see whether the review was positive or negative. We then compared the ratings witht he reviews to see if there was a pattern. we found that more positive reviews were associated with more positve ratings.
+
+While we cannot say whether previous reviews effect new ratings, can can identify a relationship between the number of stars given to a restaurant and the number of positive words left in the comments. This result comes as no surprise, but the process of learning to parse the text and analyze was excting and a great way to understand the data.
 
 
 # Video Presentations
 
 1. [Network Video](https://www.loom.com/share/6d17dc0d62694f739e89ba87d3477fed)
-2. [Text Mining (Part 1)](https://nbviewer.jupyter.org/github/Anth350z/Data_620/blob/master/Text%20Mining.ipynb)
+2. [Text Mining (Part 1)](https://youtu.be/DAmaXVdV09Q)
+3. [Text Mining (Part 2)](https://nbviewer.jupyter.org/github/Anth350z/Data_620/blob/master/Text%20Mining.ipynb)
 
 ----------
 
