@@ -1,6 +1,6 @@
 ---
-title: "Yelp Review Analysis"
-author: "Juliann McEachern"
+title: "Network & Text Analysis of Yelp Reviews"
+author: "Juliann McEachern, Mia Siracusa, Anthony Munoz, Katie Evers"
 date: "July 17, 2019"
 output: 
   html_document:
@@ -24,18 +24,17 @@ We have a two-part goal in this assignment:
 2.  Evaluate the relationship between the text contents of reviews and the rating a business received. 
 
 ```{r dependencies, echo=F, warning=F, message=F, comment=F}
-## data processing packages
-library(tidyverse)
+##network packages
+library(igraph)
+
+## text processing packages
+library(plyr);library(dplyr); library(tidyverse); library(stringr); library(tidytext); library(textdata)
 
 ##formatting packages
 library(knitr); library(kableExtra); library(default)
 
-##network packages
-library(igraph)
-
 ## knit sizing
 options(max.print="100"); opts_knit$set(width=75) 
-
 
 ## augment chunk output
 opts_chunk$set(echo=T,cache=F, tidy=T,comment=F,message=T,warning=T) #change message/warning to F upon completion
@@ -49,7 +48,7 @@ default(scroll_box) <- list(width = "100%")
 
 ## Data Aquisition & Tidying {.tabset .tabset-fade .tabset-pills}
 
-Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D212-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
+Data was acquired from Kaggle as a JSON file for a project conducted in [Data 612](http://rpubs.com/jemceach/D612-Final-Project). Our network uses the subsetted data from that project. This subset is stored as a csv file in our data folder and was read into this report for further review.  
 
 We added additional transformations to meet our project goals and separated the data into seperate dataframes for network building and text processing. 
 
@@ -155,11 +154,13 @@ rbind(Business.Nodes = toString(node_count[2]),
 
 ## Edge-Trimming  {.tabset .tabset-fade .tabset-pills}
 
-To better understand our network, we applied the island method to see our most influential user and businesses within our dataset.
+To better understand our network, we applied the island method to see our most influential user and businesses within our dataset. We made our network more sparse by only keeping only the most important ties and discarding the rest.
+
+### Frequency
+
+We looked at a histogram of our edge weight to better understand our network. 
 
 ```{r}
-#In order to see our network better, we are going to sparsify it by only keeping only the most important ties and discarding the rest
-
 #Modify data frame
 edgesDf <- yelp_network %>% 
   select(businessID, userID, weight)
@@ -167,27 +168,213 @@ edgesDf <- yelp_network %>%
 #Convert weight to numeric
 weight <- as.numeric(unlist(edgesDf$weight))
 
-head(edgesDf)
-
-#Examine frquency of weight
+# Examine frquency of weight
 hist(weight)
-#Calculate mean and standard deviation
-mean(weight)
-sd(weight)
+```
 
-#Keep edges that have weight higher than the mean
+```{r, echo=F}
+# Calculate mean and standard deviation
+print(paste0('Mean:', round(mean(weight),2), ' Standard Deviation: ', round(sd(weight),2)))
+```
+
+### Plot 1
+
+In our first plot, kept edges that have weight higher than our mean cut off value. 
+
+```{r}
 cut.off <- mean(weight)
 net.sp <- delete_edges(g, E(g)[weight<cut.off])
-plot(net.sp)
+plot(net.sp, layout = layout_with_kk)
+```
+
+### Plot 2
+
+It was still difficult to see the network, so we tried to instead eliminated weak vertices with 0 degrees of connectivity. 
+
+```{r}
+#Eliminate vertices with degree 0
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) == 0] )
+plot(net.sp, layout = layout_with_kk)
+```
+
+### Plot 3 
+
+In our final plot, we can see the most influential user and businesses which have a degree value that exceeds a degree of 6. 
+
+```{r}
+#Calculate mean degrees of network
+print(paste0("Mean degree: ", mean(degree(g))))
+
+#Eliminate vertices with degree less than rounded mean
+net.sp <- delete.vertices(g, 
+            V(g)[ degree(g) < 6] )
+plot(net.sp, layout = layout_with_kk)
+```
+
+### Key User Nodes
+
+The key user nodes are identified in the tibbles below.
+
+```{r, echo=F}
+#User IDs and names tibble
+rbind(user_nodes[2308,], user_nodes[3667,], user_nodes[1342,]) %>% select(-name, -sizes) %>% kable() %>% kable_styling()
+```
+
+### Key Business Nodes
+
+
+The key business nodes are identified in the tibbles below.
+
+```{r, echo=F}
+#Business IDs and names tibble
+rbind(business_nodes[2244,], business_nodes[1239,], business_nodes[4102,], business_nodes[2704,])  %>% kable() %>% kable_styling()
 ```
 
 # Text Analysis
 
-Possible reference: https://towardsdatascience.com/sentiment-analysis-with-text-mining-13dd2b33de27
+We would like to asses each word in the reviews as either positive or negative and find the difference between the number of positive and negative words. This will be the "score" of the review. 
+
+## Sentiment Function
+
+First, we will use the Bing sentiment lexicon from the tidytext package. The Bing lexicon classifies certain words as either positive or negative. 
+
+```{r}
+# positive / negative sentiment function
+m <- get_sentiments("bing")
+
+pos.words <- vector()
+neg.words <- vector()
+
+for (i in 1:nrow(m)) {
+    if (m$sentiment[i] == "positive") {
+        pos.words[i] <- m$word[i]
+    }
+}
+
+
+for (i in 1:nrow(m)) {
+    if (m$sentiment[i] == "negative") {
+        neg.words[i] <- m$word[i]
+    }
+}
+```
+
+Below are some examples of positive and negative words. 
+
+```{r, echo=F}
+print("Positive:")
+na.omit(pos.words[1:30])
+print("-------------------------------------------")
+print("Negative:")
+na.omit(neg.words[1:30])
+```
+
+Then, we created a function that splits the string of text form the reviews and analyzes each word, and then calculates the score. **Reference source.**
+
+```{r}
+v <- as.character(as.vector(yelp_reviews$text))
+
+score.sentiment = function(v, pos.words, neg.words, .progress = "none") {
+    require(plyr)
+    require(stringr)
+    
+    # we got a vector of sentences. plyr will handle a list or a vector as an
+    # "l" for us we want a simple array ("a") of scores back, so we use "l" +
+    # "a" + "ply" = "laply":
+    
+    scores = laply(v, function(sentence, pos.words, neg.words) {
+        
+        # clean up sentences with R's regex-driven global substitute, gsub():
+        sentence = gsub("[[:punct:]]", "", sentence)
+        sentence = gsub("[[:cntrl:]]", "", sentence)
+        sentence = gsub("\\d+", "", sentence)
+        # and convert to lower case:
+        sentence = tolower(sentence)
+        
+        # split into words. str_split is in the stringr package
+        word.list = str_split(sentence, "\\s+")
+        # sometimes a list() is one level of hierarchy too much
+        words = unlist(word.list)
+        
+        # compare our words to the dictionaries of positive & negative terms
+        pos.matches = match(words, pos.words)
+        neg.matches = match(words, neg.words)
+        
+        # match() returns the position of the matched term or NA we just want a
+        # TRUE/FALSE:
+        pos.matches = !is.na(pos.matches)
+        neg.matches = !is.na(neg.matches)
+        
+        # and conveniently enough, TRUE/FALSE will be treated as 1/0 by sum():
+        score = sum(pos.matches) - sum(neg.matches)
+        
+        return(score)
+    }, pos.words, neg.words, .progress = .progress)
+    
+    scores.df = data.frame(score = scores, text = v)
+    return(scores.df)
+}
+```
+
+## Visualize Relationships {.tabset .tabset-fade .tabset-pills}
+
+We added the scores for each review to the original dataframe. Once this step is finished, it will make analysis much easier. Below, I've compared some of the variables to explore the relationships between score of reviews and the stars associated with the reviews.
+
+```{r}
+t <- score.sentiment(v, pos.words, neg.words)
+full <- inner_join(t, yelp_reviews, by = "text")
+```
+
+### Stars Score
+
+```{r, echo=F}
+plot(full$stars, full$score)
+```
+
+### Funny Score
+```{r, echo=F}
+plot(full$votes.funny, full$score)
+```
+
+### Useful Score
+```{r, echo=F}
+plot(full$votes.useful, full$score)
+```
+
+### Cool Score
+```{r, echo=F}
+plot(full$votes.cool, full$score)
+```
+
+### Analysis 
+
+The most interesting plot to examine further would be the stars vs score. It appears that as stars increase, so does the score. We will test if there is actually a relationship.
+
+## Correlation
+```{r, echo=F}
+cor(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
+```
+
+The p-value is .04418, so at a 95% confidence interval, we can say that there is positive relationship between stars and the amount of positive words in the reviews of restaurants.
+
+```{r, echo=F}
+cor.test(full$stars, full$score, method = c("pearson", "kendall", "spearman"))
+```
+
 
 # Conclusion
 
-Final thoughts. 
+For the text analysis, our first step was to create a sentimental analysis of the reviews. We used the Bing lexicon from the tidytext package and analyzed each word from the reviews to see whether the review was positive or negative. We then compared the ratings witht he reviews to see if there was a pattern. we found that more positive reviews were associated with more positve ratings.
+
+While we cannot say whether previous reviews effect new ratings, can can identify a relationship between the number of stars given to a restaurant and the number of positive words left in the comments. This result comes as no surprise, but the process of learning to parse the text and analyze was excting and a great way to understand the data.
+
+
+# Video Presentations
+
+1. [Network Video](https://www.loom.com/share/6d17dc0d62694f739e89ba87d3477fed)
+2. [Text Mining (Part 1)](https://youtu.be/DAmaXVdV09Q)
+3. [Text Mining (Part 2)](https://nbviewer.jupyter.org/github/Anth350z/Data_620/blob/master/Text%20Mining.ipynb)
 
 ----------
 
